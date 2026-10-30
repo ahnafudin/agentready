@@ -18,6 +18,7 @@ registry (`scripts/stacks.json`), so versioning keeps working even if a stack en
 | Stack | Target | Notes |
 |---|---|---|
 | JS/TS | `package.json` | the source of truth itself |
+| npm | `package-lock.json` | v2/v3 root `version` and `packages[""].version` together; dependency pins and formatting stay unchanged |
 | Deno | `deno.json`, `deno.jsonc` | skipped when it declares no `version` |
 | Expo | `app.json` | **only** when the file contains an `"expo"` key — bare React Native uses `app.json` for the display name, and that must not be rewritten |
 | Rust / Tauri | `Cargo.toml` + `Cargo.lock`, at the repo **root and/or `src-tauri/`**; `src-tauri/tauri.conf.json` | `[package]`-scoped, so a dependency's `version = "…"` is never touched; a workspace-inherited version is skipped |
@@ -34,6 +35,21 @@ registry (`scripts/stacks.json`), so versioning keeps working even if a stack en
 | Go / any | a root `VERSION` file | created by you once; read via `go:embed`, `-ldflags`, or at runtime |
 
 Extend `TARGETS` in `scripts/version.mjs` for anything else, and add a planner test beside it.
+
+## npm lockfile guard
+
+`npm run gate` includes `version-sync` before framework gates, so regenerating `tooling.gates`
+with `stack:apply` cannot remove the check. Run it alone with `npm run gate version-sync`.
+The check reads manifests without changing them and fails if either supported lockfile project
+version differs from `package.json`. Run `npm run version:sync` to repair drift, then review the
+two version changes and commit the lockfile with the other manifests.
+
+An absent lockfile is allowed: the template and non-npm projects need none. Legacy v1 lockfiles
+are explicitly skipped by both the planner and guard; upgrade them with npm to opt into v2/v3
+synchronization. The planner also skips malformed JSON, missing/non-string version fields, and
+ambiguous duplicate keys without a partial rewrite. The guard rejects malformed or unsupported
+existing lockfiles and v2/v3 files missing either project version; regenerate those with
+`npm install` rather than relying on a version bump to repair their structure.
 
 ## Counters this does NOT touch (on purpose)
 

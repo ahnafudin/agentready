@@ -322,6 +322,69 @@ describe("Cargo.lock planner (reads its sibling Cargo.toml)", () => {
   });
 });
 
+describe("package-lock.json planner", () => {
+  for (const lockfileVersion of [2, 3]) {
+    it(`updates both project versions in v${lockfileVersion}, preserving dependency pins and formatting`, () => {
+      const raw = `{"version" : "0.1.0", "lockfileVersion":${lockfileVersion}, "packages":{"":{"version":"0.1.0"},"node_modules/example":{"version":"0.1.0","integrity":"unchanged"}}}\r\n`;
+      const expected = `{"version" : "9.9.9", "lockfileVersion":${lockfileVersion}, "packages":{"":{"version":"9.9.9"},"node_modules/example":{"version":"0.1.0","integrity":"unchanged"}}}\r\n`;
+      assert.equal(P.planPackageLock("package-lock.json", raw, V), expected);
+    });
+  }
+
+  it("scopes the root package even with nested braces and escaped quotes in strings", () => {
+    const raw = JSON.stringify({
+      version: "0.1.0",
+      lockfileVersion: 3,
+      description: 'unmatched } and escaped quote " and literal "packages": {',
+      packages: {
+        "": { description: 'nested { with a quote "', version: "0.1.0", dependencies: { example: "^1.0.0" } },
+        "node_modules/example": { version: "0.1.0" },
+      },
+    });
+    assert.deepEqual(JSON.parse(P.planPackageLock("package-lock.json", raw, V)), {
+      version: "9.9.9",
+      lockfileVersion: 3,
+      description: 'unmatched } and escaped quote " and literal "packages": {',
+      packages: {
+        "": { description: 'nested { with a quote "', version: "9.9.9", dependencies: { example: "^1.0.0" } },
+        "node_modules/example": { version: "0.1.0" },
+      },
+    });
+  });
+
+  it("finds direct project fields regardless of member order or nested matching keys", () => {
+    const raw = '{"metadata":{"version":"0.1.0"},"packages":{"node_modules/example":{"nested":{"":{"version":"0.1.0"}},"version":"0.1.0"},"":{"metadata":{"version":"0.1.0"},"version":"0.1.0"}},"version":"0.1.0","lockfileVersion":3}';
+    const expected = '{"metadata":{"version":"0.1.0"},"packages":{"node_modules/example":{"nested":{"":{"version":"0.1.0"}},"version":"0.1.0"},"":{"metadata":{"version":"0.1.0"},"version":"9.9.9"}},"version":"9.9.9","lockfileVersion":3}';
+    assert.equal(P.planPackageLock("package-lock.json", raw, V), expected);
+  });
+
+  it("preserves a dependency named version that appears before the project's own version", () => {
+    const raw = '{"version":"0.1.0","lockfileVersion":3,"packages":{"":{"dependencies":{"version":"0.1.0"},"version":"0.1.0"}}}';
+    const expected = '{"version":"9.9.9","lockfileVersion":3,"packages":{"":{"dependencies":{"version":"0.1.0"},"version":"9.9.9"}}}';
+    assert.equal(P.planPackageLock("package-lock.json", raw, V), expected);
+  });
+
+  const skipped = [
+    ["malformed JSON", "{ invalid"],
+    ["a v1 lockfile", '{"version":"0.1.0","lockfileVersion":1,"dependencies":{"example":{"version":"0.1.0"}}}'],
+    ["a missing root version", '{"lockfileVersion":3,"packages":{"":{"version":"0.1.0"}}}'],
+    ["a missing root-package version", '{"version":"0.1.0","lockfileVersion":3,"packages":{"":{},"node_modules/example":{"version":"0.1.0"}}}'],
+    ["a non-string version", '{"version":1,"lockfileVersion":3,"packages":{"":{"version":"0.1.0"}}}'],
+    ["ambiguous duplicate version fields", '{"version":"0.1.0","version":"0.2.0","lockfileVersion":3,"packages":{"":{"version":"0.1.0"}}}'],
+  ];
+  for (const [name, raw] of skipped) {
+    it(`skips ${name} without partially updating another version`, () => {
+      assert.equal(P.planPackageLock("package-lock.json", raw, V), null);
+    });
+  }
+
+  it("is idempotent", () => {
+    const raw = '{"version":"0.1.0","lockfileVersion":3,"packages":{"":{"version":"0.1.0"}}}';
+    const next = P.planPackageLock("package-lock.json", raw, V);
+    assert.equal(P.planPackageLock("package-lock.json", next, V), next);
+  });
+});
+
 describe("writeAll is two-phase", () => {
   it("validates before touching disk — an invalid version writes nothing", () => {
     const pkgPath = new URL("../../package.json", import.meta.url);

@@ -167,11 +167,12 @@ request. `paths` is optional; without it every tracked file is checked:
 | Command | What it does |
 |---|---|
 | `npm run setup` | One-shot bootstrap. Idempotent; safe to re-run on any machine. |
-| **`npm run gate`** | **The one command that means "is this green?"** — slop → design → lint → typecheck → test → build, stopping at the first failure. |
+| **`npm run gate`** | **The one command that means "is this green?"** — slop → design → version-sync → lint → typecheck → test → build, stopping at the first failure. |
 | `npm run slop` | The comment check alone (`tooling.slop` in `package.json` sets the limit and ignored paths). |
 | `npm run design` | The `DESIGN.md` check alone: format, token references and text contrast. |
 | `npm run design:lint` | The DESIGN.md format's official linter, fetched with npx (not part of the gate). |
 | `npm run gate test` | A single stage. |
+| `npm run gate version-sync` | Compare optional npm v2/v3 lockfile project versions with `package.json`. |
 | `npm run gate:list` | What `gate` would run, without running it. |
 | `npm run stack:detect` | Which framework matched, its bases, and the full ranking. |
 | `npm run stack:list` | All 70 registry entries. |
@@ -255,6 +256,7 @@ scripts/
   stacks.mjs           detect → package.json / .gitignore / docs/STACK.md
   gate.mjs             `npm run gate`
   version.mjs          semver source of truth + every manifest it syncs
+  check-version-sync.mjs  optional npm lockfile project versions, built into the gate
   sync-agents.mjs      AGENTS.md → per-tool pointer files
   personalize.mjs      personalise a fresh copy (version → 0.1.0, project README, licence)
   verify-stack.mjs     detect + run the gates of a scaffolded project
