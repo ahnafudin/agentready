@@ -1,6 +1,6 @@
 {
   "name": "agentready",
-  "version": "0.16.1",
+  "version": "0.17.0",
   "displayName": "agentready",
   "description": "Denies unbounded reads of long files, flags a comment over three lines right after an edit, and reviews a diff against the anti-slop rules.",
   "author": {

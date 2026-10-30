@@ -40,6 +40,7 @@ const NON_NEGOTIABLE = [
   "**Never commit or push unless the owner asks**, and never rewrite pushed history.",
   "**One author per commit.** Do not add a `Co-Authored-By` line — not for yourself, not for anyone — nor a \"Generated with …\" line or a session link, whichever tool you are. A `commit-msg` hook removes every such trailer and CI fails the build if one lands anyway. Credit collaborators in the commit body instead.",
   "**Ask ONE question when genuinely unsure** instead of guessing.",
+  "**Shared task worktrees:** use `.worktrees/<task-id>/` and one active writer per worktree. Read `docs/WORKTREES.md` for creation, agent launch, handoff and cleanup; read `.agentready-handoff.md` when present before editing.",
 ];
 
 const ROUTES = [
@@ -48,6 +49,8 @@ const ROUTES = [
   ["`docs/PRD.md`", "product scope and sensitive-feature guardrails"],
   ["`docs/FEATURES.md`", "per-screen / per-feature behavior"],
   ["`docs/TASKS.md`", "the phase checklist"],
+  ["`docs/ISSUES.md`", "GitHub Issues, Project setup and issue lifecycle"],
+  ["`docs/WORKTREES.md`", "shared task worktrees, agent handoff and cleanup"],
   ["`docs/VERSIONING.md`", "release and version-bump rules"],
   ["`docs/archive/`", "full build history — read before deep work on a domain that has one"],
   ["`docs/anti-slop/`", "rules against AI slop in code, UI, copy and reports"],
@@ -80,9 +83,9 @@ export function renderStub(target) {
   for (const [file, what] of ROUTES) lines.push(`| ${what} | ${file} |`);
   lines.push(
     "",
-    "Cross-session issues live in **beads** (`bd ready`, `bd show <id>`, `bd update <id> --claim`,",
-    "`bd close <id>`); `docs/TASKS.md` is the roadmap checklist, not an issue queue. If `bd` is not",
-    `installed, skip it — it is optional. Full detail, as always, in \`${CANONICAL}\`.`,
+    "Cross-session issues live in **GitHub Issues**; the linked **GitHub Project** tracks Status and Priority.",
+    "Use `gh issue list`, `gh issue view <number>` and `npm run issues:setup`; see `docs/ISSUES.md`.",
+    "`docs/TASKS.md` stays the phase-level roadmap checklist.",
     "",
   );
   return lines.join("\n");
@@ -94,7 +97,7 @@ export function sync({ check = false, root = ROOT } = {}) {
   for (const target of TARGETS) {
     const path = join(root, target.path);
     const existing = readIfExists(path);
-    // Keep fenced regions other tools (bd, rules installers) manage in this file; we own only the rest.
+    // Keep fenced regions other tools (rules installers) manage in this file; we own only the rest.
     const next = withForeignBlocks(renderStub(target), foreignBlocks(existing));
     if (check) {
       if (existing !== next) stale.push(target.path);

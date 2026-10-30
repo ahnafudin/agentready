@@ -81,7 +81,7 @@ describe("canonical file", () => {
       "npm run gate",
       "docs/STACK.md",
       "Read before writing",
-      "Beads Issue Tracker",
+      "GitHub Issues and Projects",
       "Commit and push only when the owner asks",
     ]) {
       assert.ok(agents.includes(marker), `AGENTS.md is missing: ${marker}`);

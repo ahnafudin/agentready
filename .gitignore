@@ -51,15 +51,10 @@ local.properties
 Pods/
 DerivedData/
 
-# ── Beads / Dolt (kept here up front so `bd init` has little to add; the
-#    *.db is scoped to .beads/ so a real project database file is never
-#    silently ignored) ──────────────────────────────────────────────────────
-.dolt/
-.beads/**/*.db
-.beads-credential-key
-.beads/proxieddb/
-
-# ── Claude Code ephemeral git worktrees ───────────────────────────────────
+# Shared task worktrees and generated session context.
+/.worktrees/
+/.agentready-handoff.md
+# Keep existing Claude-managed worktrees ignored.
 .claude/worktrees/
 
 # >>> tooling:stack-ignores
@@ -70,6 +65,3 @@ coverage/
 .turbo/
 *.tsbuildinfo
 # <<< tooling:stack-ignores
-
-# `bd init` appends a bare `*.db` here; narrowed to .beads/ so a project's own tracked database is never ignored.
-.beads/*.db

@@ -57,7 +57,7 @@ Two more rules without a test of their own:
 - **Keep the tooling dependency-free.** Node's standard library only, so a copy works anywhere Node
   22+ does.
 - **Keep other people's product names out of the source.** Naming them reads as an endorsement or a
-  comparison. `bd` is the exception, because it ships with agentready.
+  comparison. References needed for supported integrations belong in their workflow documentation.
 
 ## License
 

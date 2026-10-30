@@ -4,7 +4,7 @@
 
 ```bash
 npm install          # activates the auto-version git hook (postinstall)
-npm run setup        # hooks → framework detection → agent docs → beads → dolt remote
+npm run setup        # hooks → framework detection → agent docs → GitHub Project
 ```
 
 Setup detects your framework and writes three things for you: `package.json` → `tooling.gates`,
@@ -38,10 +38,9 @@ Then fill the placeholders — search for `TODO:fill`:
       docs (`/**`, `///`) need more than three lines
 - [ ] `CLAUDE.md` — project name only (everything else is imported from `AGENTS.md`; **do not copy
       rules here**)
-- [ ] `package.json` — **`name` first, before anything else.** While it is still `my-project`,
-      `npm run setup` deliberately REFUSES to run `bd init`: bd bakes the name into the issue
-      prefix and commits `.beads/` (a project_id and the Dolt sync remote), so initializing an
-      unrenamed copy would ship agentready's identity to every project made from it.
+- [ ] `package.json` — **`name` first, before anything else.** While it is `my-project`,
+      the scripts treat the copy as agentready itself. Tracker setup follows the GitHub origin,
+      and its machine-local configuration stays outside versioned files.
       Non-JS project? Keep this file anyway — it is the TOOLING
       manifest (setup, gates, versioning); add your language's real manifest beside it
       (`composer.json`, `pyproject.toml`, `go.mod` + a root `VERSION` file — all auto-synced,
@@ -59,10 +58,15 @@ Then fill the placeholders — search for `TODO:fill`:
       `docs/TOOLING-LICENSE` (it covers the copied tooling), so the root is yours to choose
 - [ ] Delete the SETUP NOTE at the top of `AGENTS.md`
 
-Prerequisites: Node ≥ 22, git, and (optional) **bd** — the official release binary from
-<https://github.com/gastownhall/beads> or `brew install beads`. Avoid CGO-less `go install` builds:
-embedded Dolt refuses to open with them, and the npm package `@beads/bd` has a broken postinstall.
-`npm run setup` completes fine without bd.
+Prerequisites: Node ≥ 22 and git. For issue tracking, install GitHub CLI and authenticate:
+
+```bash
+gh auth login --scopes repo,project
+npm run issues:setup
+```
+
+Without a GitHub origin, local setup and quality gates still work. Add your own origin before
+connecting the tracker. See [docs/ISSUES.md](docs/ISSUES.md).
 
 ## Editing the rules
 
@@ -80,11 +84,9 @@ Commit the generated files: a fresh clone opened in Cursor must already have the
 
 ## Working on agentready itself (not a project made from it)
 
-Leave `package.json`'s `name` as `my-project` and setup will keep skipping `bd init` — which is
-what you want: agentready must never ship a `.beads/` workspace. If you want issue tracking for
-the agentready repo itself, run `bd init` by hand and keep `.beads/` out of git locally
-(`echo '.beads/' >> .git/info/exclude` — `.git/info/exclude` is not committed, so a real project
-still commits its own `.beads/config.yaml` for the second-machine flow).
+Leave `package.json`'s `name` as `my-project`. GitHub tracker setup uses the repository's origin;
+it does not use the placeholder package name. The connection is saved only in the common Git
+directory, so copies of the template inherit no Project IDs or local tracker data.
 
 ## Keeping AI agents out of your contributor list
 
@@ -121,35 +123,21 @@ git config --global --add safe.directory "/full/path/to/your/repo"
 
 ## Second machine (same project, e.g. Windows + macOS)
 
-What git already carries: `AGENTS.md` + the generated pointer files, docs + archives,
-`.claude/settings.json` hooks, `.beads/` config + git-hooks, `.githooks/`, `package.json` gates.
-What is **per-machine**: the beads local DB, the Dolt sync remote, `core.hooksPath`, your SSH
-config, and your agent's auto-memory (it does NOT sync — anything cross-machine-critical belongs in
-`AGENTS.md`/docs, which is the whole point of agentready).
+What git carries: `AGENTS.md`, generated pointers, docs and archives, `.claude/settings.json`,
+`.githooks/` and `package.json` gates. GitHub stores issues, comments and Project data remotely.
+Per-machine state includes GitHub authentication, the local Project connection, `core.hooksPath`,
+your SSH configuration and agent auto-memory. Keep cross-machine decisions in GitHub or docs.
 
 ```bash
-git clone <origin> && cd <project>
+git clone <origin>
+cd <project>
+gh auth login --scopes repo,project
 npm install
-npm run setup                 # re-applies the per-machine bits: git hooks, Claude hooks, dolt
-                              # remote — and runs `bd bootstrap` (NOT `bd init`) when it sees
-                              # the committed .beads config without a local DB
-bd dolt pull                  # pull existing issue data
-npm run gate                  # confirm the toolchain is actually installed here
+npm run setup                 # reconnects the existing GitHub Project
+npm run gate
 ```
 
-⚠️ If you already ran `bd init` on this machine BEFORE cloning/pulling the canonical setup:
-`bd init` may have auto-committed its scaffolding (it commits everything staged). Fix first:
-
-```bash
-git log --oneline -3                       # look for "bd init: initialize beads issue tracking"
-git reset --soft HEAD~1 && git restore --staged .
-rm -rf .beads && git checkout -- .gitignore CLAUDE.md AGENTS.md
-git pull
-npm run setup && bd dolt pull
-```
-
-(`npm run setup` passes `--skip-agents` to `bd init`, so a normal run cannot overwrite `AGENTS.md`.
-The cleanup above only matters if you ran `bd init` by hand.)
+There is no issue database to pull or push. `gh issue list` reads the current remote tracker.
 
 ## Machine-level agent tooling (deliberately NOT in agentready)
 
@@ -168,13 +156,6 @@ never sees `~/.claude`. Installing the same guard globally as well is harmless: 
 
 ## Day-to-day rhythm (any machine)
 
-- Session start: `git pull` + `bd dolt pull`
-- Before saying "done": `npm run gate` — and paste the output, do not summarise it
-- Session end: update/close bd issues; commit/push **only when you ask for it**
-- Never run `bd init` manually — `npm run setup` decides (init on a brand-new project,
-  `bd bootstrap` on a fresh clone, skip when the workspace is already active).
-
-Note: `.claude/settings.json` already ships the Claude Code hooks (`node scripts/bd-prime.mjs` on
-SessionStart/PreCompact), so setup's `bd setup claude` step is normally a no-op check — it only
-self-heals when the hooks are missing. That wrapper stays silent when bd is absent, so a machine
-without beads does not start every session with an error in context.
+- Session start: inspect `git status`, `gh issue list` and the linked Project.
+- Before saying "done": run `npm run gate` and report its result.
+- Session end: update issues and Project Status; commit/push only when the owner asks.

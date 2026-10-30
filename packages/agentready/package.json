@@ -1,6 +1,6 @@
 {
   "name": "@ahnafudin/agentready",
-  "version": "0.16.1",
+  "version": "0.17.0",
   "description": "Start a repo that AI coding agents follow, or add that tooling to one you have: one AGENTS.md, one gate, anti-slop checks.",
   "type": "module",
   "bin": {

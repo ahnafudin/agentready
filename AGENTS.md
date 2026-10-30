@@ -21,7 +21,8 @@ Treat the rules below as if they were prepended to every request:
   detected framework, its layer rules + gate commands → `docs/STACK.md` (generated) ·
   architecture/patterns → `docs/ARCHITECTURE.md` · product strategy + sensitive-feature guardrails →
   `docs/PRD.md` · per-screen/feature behavior → `docs/FEATURES.md` · build checklist →
-  `docs/TASKS.md` · release/versioning → `docs/VERSIONING.md` · future work → `docs/ROADMAP.md` ·
+  `docs/TASKS.md` · task worktrees, agent handoff and cleanup → `docs/WORKTREES.md` ·
+  issue workflow + Project setup → `docs/ISSUES.md` · release/versioning → `docs/VERSIONING.md` · future work → `docs/ROADMAP.md` ·
   anti-slop rules → `docs/anti-slop/` (`code` · `ui` · `copy` · `human`) ·
   visual identity + design tokens → `DESIGN.md` (the open DESIGN.md format) ·
   a domain's full build history → `docs/archive/` (read `STATUS_ARCHIVE.md` BEFORE deep work on a
@@ -40,12 +41,13 @@ Treat the rules below as if they were prepended to every request:
 - **Verify before claiming.** "Done", "fixed" and "passing" require the output of `npm run gate`
   (or the specific gate you ran). Never report success from inspection alone.
 - **Isolate sizable work; decide at task START.** Feature/fix work touching app code beyond a
-  trivial single-file edit → create an isolated git worktree FIRST (`git worktree add`, or your
-  harness's own worktree tool if it has one; symlink/junction gitignored heavy dirs such as
-  `node_modules` from the main checkout so builds work). Stay on the main checkout for
+  trivial single-file edit → use `.worktrees/<task-id>/` FIRST: reuse the current managed
+  worktree or run `npm run wt:create -- <task-id> --agent claude|codex`. Read `docs/WORKTREES.md`
+  for launch, handoff and cleanup. Each worktree has one active writer; read
+  `.agentready-handoff.md` when present before editing. Stay on the main checkout for
   docs/config/tracking/tooling changes and anything that must touch the live checkout (git hooks,
-  `.beads/`). Run independent subtasks in parallel when your harness supports it.
-- **Issues:** see "Beads Issue Tracker" below — bd is canonical for cross-session issues;
+  local Git configuration). Run independent subtasks in parallel when your harness supports it.
+- **Issues:** see "GitHub Issues and Projects" below — GitHub is canonical for cross-session issues;
   `docs/TASKS.md` stays the roadmap checklist.
 - **No AI slop.** Code, UI, copy and reports follow `docs/anti-slop/` — read the file for the area
   you touch. A comment is a short summary of what the code cannot say: three lines at most, never
@@ -147,6 +149,7 @@ npm run gate:list      # what `gate` would run, without running it
 npm run stack:detect   # which framework the registry matched, and how strongly
 npm run stack:apply    # refresh docs/STACK.md + tooling.gates + the .gitignore block
 npm run agents:sync    # regenerate the per-tool pointer files from THIS file
+npm run wt:list        # managed task worktrees and their active agents
 npm run version:get    # current semver
 # TODO:fill — dev / run commands specific to this project
 ```
@@ -176,45 +179,30 @@ existing structure.
 
 ---
 
-## Beads Issue Tracker — project rules
+## GitHub Issues and Projects — project rules
 
-This project uses **bd (beads)** for cross-session issue tracking. `bd setup claude` (run by
-`npm run setup`) may insert its own machine-managed block into `CLAUDE.md` (BEGIN/END BEADS
-INTEGRATION markers) — **the rules in THIS section are the project's contract and OVERRIDE that
-block wherever they conflict.** Do not edit inside bd's markers; edit here.
+**GitHub Issues is the canonical cross-session tracker.** The linked GitHub Project owns delivery
+Status and Priority. Read `docs/ISSUES.md` for setup, issue creation, Project updates and completion.
 
-```bash
-bd ready                # find available work
-bd show <id>            # view issue details
-bd update <id> --claim  # claim work
-bd close <id>           # complete work
-```
-
-- **bd is the canonical CROSS-SESSION issue tracker** (bugs, follow-ups, discovered work).
-  In-session scratch todos are fine, but anything that must survive the session gets filed:
-  `bd create "…" -t bug -p 1 --deps discovered-from:<id>` → claim with `bd update <id> --claim` →
-  `bd close <id> --reason "…"`.
-- `docs/TASKS.md` stays the phase-level ROADMAP checklist (a document, not an issue queue);
-  completed sections move to `docs/archive/TASKS_ARCHIVE.md`. Never double-file one item in both
-  bd and TASKS.md.
-- Run `bd prime` for the full command reference. Agent memory (gotchas/lessons) stays in your
-  harness's own memory system; `bd remember` may additionally hold project workflow notes that
-  `bd prime` injects.
-- **Worktrees:** every git worktree automatically shares the main repo's beads DB (no setup).
-  Embedded Dolt is single-writer — serialized agents are fine; run `bd dolt start` (server mode)
-  only if multiple agents must write in parallel.
-- **bd is optional.** If it is not installed, everything else in agentready still works —
-  do not block on it, and do not install it unasked.
-
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git
-remote; `.beads/issues.jsonl` is a passive export.
+- File bugs, follow-ups and discovered work as GitHub issues; link related issues with their URLs.
+  Add each issue to the linked Project and keep its Status current.
+- `docs/TASKS.md` stays the phase-level roadmap checklist; completed sections move to
+  `docs/archive/TASKS_ARCHIVE.md`. Keep individual work items in GitHub.
+- Use `issue-<number>` as a managed task ID. The worktree manager records agent ownership and
+  handoff context in issue comments, preserving human assignees. Transfer ownership through
+  `wt:handoff`; one writer owns each worktree.
+- Tracker configuration is machine-local in the common Git directory. On a new machine run
+  `npm run issues:setup`; it discovers the repository's Project from the GitHub origin.
+  Local tooling still works without GitHub access; tracked tasks require authenticated `gh`.
+- Close an issue after its scope is complete and `npm run gate` passes, then set Project Status
+  to Done. Removing a worktree preserves the issue state and its branch.
 
 ---
 
 ## Session completion (project contract)
 
-When ending a work session: file bd issues for any remaining/discovered work, run `npm run gate` if
-code changed, update/close bd issue status, and report (what was done · files changed · what
+When ending a work session: file GitHub issues for any remaining/discovered work, run `npm run gate` if
+code changed, update/close GitHub issues and Project Status, and report (what was done · files changed · what
 remains). **Commit and push only when the owner asks** — never auto-push, and never rewrite pushed
 history. (These two sentences override any auto-push "Session Completion" protocol a tool inserts
 elsewhere in this repo.)

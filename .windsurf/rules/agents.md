@@ -22,6 +22,7 @@ trigger: always_on
 - **Never commit or push unless the owner asks**, and never rewrite pushed history.
 - **One author per commit.** Do not add a `Co-Authored-By` line — not for yourself, not for anyone — nor a "Generated with …" line or a session link, whichever tool you are. A `commit-msg` hook removes every such trailer and CI fails the build if one lands anyway. Credit collaborators in the commit body instead.
 - **Ask ONE question when genuinely unsure** instead of guessing.
+- **Shared task worktrees:** use `.worktrees/<task-id>/` and one active writer per worktree. Read `docs/WORKTREES.md` for creation, agent launch, handoff and cleanup; read `.agentready-handoff.md` when present before editing.
 
 ## Read docs by route, not wholesale
 
@@ -32,11 +33,13 @@ trigger: always_on
 | product scope and sensitive-feature guardrails | `docs/PRD.md` |
 | per-screen / per-feature behavior | `docs/FEATURES.md` |
 | the phase checklist | `docs/TASKS.md` |
+| GitHub Issues, Project setup and issue lifecycle | `docs/ISSUES.md` |
+| shared task worktrees, agent handoff and cleanup | `docs/WORKTREES.md` |
 | release and version-bump rules | `docs/VERSIONING.md` |
 | full build history — read before deep work on a domain that has one | `docs/archive/` |
 | rules against AI slop in code, UI, copy and reports | `docs/anti-slop/` |
 | visual identity: design tokens and how to use them (the open DESIGN.md format) | `DESIGN.md` |
 
-Cross-session issues live in **beads** (`bd ready`, `bd show <id>`, `bd update <id> --claim`,
-`bd close <id>`); `docs/TASKS.md` is the roadmap checklist, not an issue queue. If `bd` is not
-installed, skip it — it is optional. Full detail, as always, in `AGENTS.md`.
+Cross-session issues live in **GitHub Issues**; the linked **GitHub Project** tracks Status and Priority.
+Use `gh issue list`, `gh issue view <number>` and `npm run issues:setup`; see `docs/ISSUES.md`.
+`docs/TASKS.md` stays the phase-level roadmap checklist.

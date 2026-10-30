@@ -1,7 +1,7 @@
 {
   "name": "my-project",
   "private": true,
-  "version": "0.16.1",
+  "version": "0.17.0",
   "type": "module",
   "description": "TODO:fill — one-line project description",
   "engines": {
@@ -25,8 +25,14 @@
     "stack:reapply": "node scripts/stacks.mjs apply --force",
     "stack:validate": "node scripts/stacks.mjs validate",
     "stack:verify": "node scripts/verify-stack.mjs",
+    "issues:setup": "node scripts/github-setup.mjs",
     "agents:sync": "node scripts/sync-agents.mjs",
     "agents:check": "node scripts/sync-agents.mjs --check",
+    "wt:create": "node scripts/worktrees.mjs create",
+    "wt:open": "node scripts/worktrees.mjs open",
+    "wt:handoff": "node scripts/worktrees.mjs handoff",
+    "wt:list": "node scripts/worktrees.mjs list",
+    "wt:remove": "node scripts/worktrees.mjs remove",
     "version:get": "node scripts/version.mjs get",
     "version:sync": "node scripts/version.mjs sync",
     "version:patch": "node scripts/version.mjs patch",

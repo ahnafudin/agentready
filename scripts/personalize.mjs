@@ -18,6 +18,8 @@ export const OWN_CONTRIBUTING_MARKER = "<!-- tooling:contributing -->";
 const OWN_LICENSE = /^Copyright \(c\) [\d, -]+ ahnafudin$/m;
 /** What serves agentready's own repository; in a project it misleads, or spends CI minutes on our registry. */
 export const UPSTREAM_ONLY = [
+  "docs/archive/TRACKER_MIGRATION.md",
+  "docs/superpowers/plans/2026-10-30-github-tracker.md",
   "CODE_OF_CONDUCT.md",
   "SECURITY.md",
   ".github/ISSUE_TEMPLATE",

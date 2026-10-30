@@ -6,17 +6,6 @@
     "sessionUrl": false
   },
   "hooks": {
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "command": "node scripts/bd-prime.mjs",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -24,7 +13,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/scripts/slop-guard.mjs"],
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/slop-guard.mjs"
+            ],
             "timeout": 10
           }
         ]
@@ -37,7 +28,9 @@
           {
             "type": "command",
             "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/scripts/read-guard.mjs"],
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/read-guard.mjs"
+            ],
             "timeout": 10
           }
         ]
@@ -49,10 +42,6 @@
           {
             "type": "command",
             "command": "node scripts/install-hooks.mjs"
-          },
-          {
-            "command": "node scripts/bd-prime.mjs",
-            "type": "command"
           }
         ],
         "matcher": ""

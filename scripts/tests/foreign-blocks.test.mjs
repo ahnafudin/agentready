@@ -1,5 +1,5 @@
 // Guards that `agents:sync` owns only the generated part of a pointer file, never the whole file.
-// Rules installers and bd append their own fenced blocks to CLAUDE.md, AGENTS.md or GEMINI.md.
+// Rules installers append their own fenced blocks to CLAUDE.md, AGENTS.md or GEMINI.md.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -10,7 +10,7 @@ import { foreignBlocks, withForeignBlocks } from "../lib/util.mjs";
 import { renderStub, sync, TARGETS } from "../sync-agents.mjs";
 
 const OTHER = ["<!-- other-tool:start -->", "- a line the other tool manages.", "<!-- other-tool:end -->"].join("\n");
-const BEADS = ["<!-- BEGIN BEADS INTEGRATION -->", "bd ready", "<!-- END BEADS INTEGRATION -->"].join("\n");
+const CUSTOM = ["<!-- BEGIN CUSTOM INTEGRATION -->", "custom tool context", "<!-- END CUSTOM INTEGRATION -->"].join("\n");
 
 describe("foreignBlocks", () => {
   it("finds a start/end block", () => {
@@ -21,18 +21,18 @@ describe("foreignBlocks", () => {
   });
 
   it("finds a BEGIN/END block", () => {
-    const found = foreignBlocks(`# Title\n\n${BEADS}\n`);
+    const found = foreignBlocks(`# Title\n\n${CUSTOM}\n`);
     assert.equal(found.length, 1);
-    assert.equal(found[0].text, BEADS);
+    assert.equal(found[0].text, CUSTOM);
   });
 
   it("keeps two tools' blocks separate, in the order they appear", () => {
     // The end marker is back-referenced to its own name, so one tool's opening
     // marker can never swallow another tool's block by closing against its end.
-    const found = foreignBlocks(`${OTHER}\n\n${BEADS}\n`);
+    const found = foreignBlocks(`${OTHER}\n\n${CUSTOM}\n`);
     assert.deepEqual(
       found.map((b) => b.text),
-      [OTHER, BEADS],
+      [OTHER, CUSTOM],
     );
   });
 
@@ -85,9 +85,9 @@ describe("withForeignBlocks", () => {
 
   it("carries several tools' blocks across together", () => {
     const stub = renderStub(TARGETS[0]);
-    const out = withForeignBlocks(stub, foreignBlocks(`${stub}\n${OTHER}\n\n${BEADS}\n`));
+    const out = withForeignBlocks(stub, foreignBlocks(`${stub}\n${OTHER}\n\n${CUSTOM}\n`));
     assert.ok(out.includes(OTHER));
-    assert.ok(out.includes(BEADS));
+    assert.ok(out.includes(CUSTOM));
   });
 });
 

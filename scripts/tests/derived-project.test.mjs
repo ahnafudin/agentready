@@ -31,7 +31,7 @@ function node(args, cwd, env = {}) {
 before(() => {
   if (SKIP) return;
   // Exactly what a copy contains: the tracked files. Not node_modules,
-  // not .beads, not anything else lying around this working tree.
+  // not local tracker state, not anything else lying around this working tree.
   const listed = tryRun("git", ["ls-files"]);
   if (!listed.ok) {
     setupFailure = `cannot list tracked files (${listed.out})`;
@@ -52,7 +52,7 @@ before(() => {
   pkg.name = PROJECT_NAME;
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
-  // The bootstrap steps `npm run setup` performs that do not need git or bd.
+  // The bootstrap steps `npm run setup` performs that do not need git or GitHub.
   for (const script of ["personalize.mjs", "stacks.mjs"]) {
     const args = script === "stacks.mjs" ? [join(dir, "scripts", script), "apply"] : [join(dir, "scripts", script)];
     const r = node(args, dir);
@@ -116,8 +116,8 @@ describe("a project made from agentready", { skip: SKIP }, () => {
     assert.ok(scripts["test:tooling"], "the tooling suite is still reachable, just renamed");
   });
 
-  it("carries no beads identity", () => {
-    assert.equal(existsSync(join(dir, ".beads")), false);
+  it("carries no machine-local tracker identity", () => {
+    assert.equal(existsSync(join(dir, ".git", "agentready", "github.json")), false);
   });
 
   it("keeps every agent front door", () => {

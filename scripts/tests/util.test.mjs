@@ -11,7 +11,6 @@ import { pathToFileURL } from "node:url";
 import {
   dubiousOwnership,
   hasShellMetachars,
-  hooksDirFor,
   isUnrenamed,
   NEEDS_SHELL,
   PLACEHOLDER_NAME,
@@ -128,20 +127,6 @@ describe("isMain", () => {
   });
 });
 
-describe("hooksDirFor", () => {
-  const root = join(tmpdir(), "a-worktree");
-
-  it("keeps an absolute core.hooksPath — the main checkout's hooks, even from a worktree", () => {
-    // bd writes this absolute form; reading <worktree>/.beads/hooks instead
-    // reported every hook MISSING and failed the lint gate in any worktree.
-    const main = join(tmpdir(), "main-checkout", ".beads", "hooks");
-    assert.equal(hooksDirFor(main, root), main);
-  });
-
-  it("resolves a relative one against the working tree, as git does", () => {
-    assert.equal(hooksDirFor(".beads/hooks", root), join(root, ".beads", "hooks"));
-  });
-});
 
 describe("jsonschema (the subset used to police stacks.json)", () => {
   const schema = {
@@ -219,7 +204,7 @@ describe("hasShellMetachars / runTool", () => {
 
   it("refuses a dangerous argument rather than quoting and hoping (Windows only)", (t) => {
     if (!NEEDS_SHELL) return t.skip("no shell is involved on this platform");
-    const r = runTool("bd", ["dolt", "remote", "add", "origin", "https://x/y$(whoami)"]);
+    const r = runTool("gh", ["repo", "view", "https://x/y$(whoami)"]);
     assert.equal(r.ok, false);
     assert.match(r.out, /refusing to pass this through a Windows shell/);
   });
@@ -255,7 +240,7 @@ describe("isUnrenamed", () => {
     assert.equal(isUnrenamed(withName(null)), false);
   });
 
-  it("guards THIS repo — agentready must never ship a beads identity", (t) => {
+  it("guards THIS repo — agentready keeps the personalization placeholder", (t) => {
     // Only meaningful in agentready: a derived project has a real name, and this suite travels with it.
     if (!isUnrenamed()) return t.skip("not agentready — this project has been renamed");
     assert.equal(isUnrenamed(), true, "package.json here must keep the placeholder name");

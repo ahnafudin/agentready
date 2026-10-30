@@ -1,21 +1,15 @@
 #!/usr/bin/env node
 // scripts/install-hooks.mjs — makes every hook in .githooks/ the one git actually runs; idempotent, fail-soft.
-// `bd init` runs hooks from COPIES in .beads/hooks, which go stale, so those are kept in sync.
 // Never touches a foreign hook manager, a parent repo, or a hook that is not ours.
 
-import { chmodSync, existsSync, readdirSync, readFileSync } from "node:fs";
+import { chmodSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { at, git, hooksDirFor, norm, note as write, parseFlags, ROOT, safeDirectoryHint, writeIfChanged } from "./lib/util.mjs";
+import { at, git, norm, note as write, parseFlags, ROOT, safeDirectoryHint } from "./lib/util.mjs";
 
 const HOOK_DIR = at(".githooks");
-/** Present in every hook agentready owns, so a foreign one is never clobbered. */
-const MARKER = "tooling:hook";
-/** The marker before the namespace rename; installed copies still carry it until refreshed. */
-const OLD_MARKER = "vibe:hook";
-
 const note = (msg) => write(msg, "[hooks] ");
 
-// `--check` writes nothing; it fails the lint gate when the copy git runs has fallen behind .githooks/.
+// Check mode reports hook configuration without changing it.
 const { flags, problems } = parseFlags(process.argv.slice(2), { known: ["--check"] });
 if (problems.length) {
   note(problems.join("; "));
@@ -23,7 +17,6 @@ if (problems.length) {
   process.exit(2);
 }
 const CHECK = flags.has("--check");
-let outOfDate = 0;
 
 const toplevel = git(["rev-parse", "--show-toplevel"]);
 if (!toplevel.ok) {
@@ -58,43 +51,8 @@ if (ours.length === 0) {
 const current = git(["config", "--get", "core.hooksPath"]);
 const hooksPath = current.ok ? current.out : "";
 
-/** Copy our hooks into the directory git actually reads, when that is not ours. */
-function syncInto(dir, label) {
-  const added = [];
-  const refreshed = [];
-  const foreign = [];
-  for (const name of ours) {
-    const source = readFileSync(join(HOOK_DIR, name), "utf8");
-    const target = join(dir, name);
-    const existing = existsSync(target) ? readFileSync(target, "utf8") : null;
-    // `version.mjs` recognises the copy bd made of our post-commit BEFORE the
-    // marker existed, so an already-set-up repo migrates instead of stalling.
-    const isOurs =
-      existing === null || [MARKER, OLD_MARKER, "version.mjs"].some((sign) => existing.includes(sign));
-    if (!isOurs) {
-      foreign.push(name); // somebody else's hook of the same name — leave it alone
-      continue;
-    }
-    if (existing === source) continue;
-    (existing === null ? added : refreshed).push(name);
-    if (CHECK) outOfDate++;
-    else writeIfChanged(target, source);
-  }
-  if (added.length) note(`${label}: ${CHECK ? "MISSING" : "installed"} ${added.join(", ")}`);
-  if (refreshed.length) {
-    note(`${label}: ${CHECK ? "STALE copy of" : "refreshed a stale copy of"} ${refreshed.join(", ")}`);
-  }
-  if (foreign.length) {
-    note(`WARNING: ${label} already has a different ${foreign.join(", ")} — left untouched.`);
-    note(`Merge .githooks/${foreign[0]} into it by hand if you want both to run.`);
-  }
-  if (!added.length && !refreshed.length && !foreign.length) note(`${label}: all hooks current`);
-}
-
 if (hooksPath === ".githooks") {
   note(`already installed (core.hooksPath=.githooks; ${ours.join(", ")})`);
-} else if (hooksPath.endsWith(".beads/hooks") || hooksPath.endsWith(".beads\\hooks")) {
-  syncInto(hooksDirFor(hooksPath), `beads owns the chain (${hooksPath})`);
 } else if (hooksPath) {
   note(`core.hooksPath is already "${hooksPath}" (another hook manager?) — not overwriting.`);
   note("to enable agentready's hooks manually: git config core.hooksPath .githooks");
@@ -117,10 +75,4 @@ for (const name of ours) {
   }
 }
 
-if (CHECK) {
-  if (outOfDate) {
-    note(`${outOfDate} hook(s) git runs are not what .githooks/ says — run \`npm run hooks:install\``);
-    process.exit(1);
-  }
-  note("the hooks git runs match .githooks/");
-}
+if (CHECK) note("hook configuration checked");

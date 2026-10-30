@@ -2,7 +2,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 /** Repo root (this file lives at <root>/scripts/lib/). */
@@ -22,7 +22,7 @@ export function tryRun(cmd, args = [], opts = {}) {
   return { ok: false, out: merged || `exited with code ${r.status}`, err };
 }
 
-/** Windows needs a shell to launch npm-installed `.cmd` shims (bd among them); without one they fail with ENOENT. */
+/** Windows needs a shell to launch npm-installed `.cmd` shims; without one they fail with ENOENT. */
 export const NEEDS_SHELL = process.platform === "win32";
 
 /** Characters a shell would reinterpret; under `NEEDS_SHELL` arguments are concatenated unescaped (DEP0190). */
@@ -34,8 +34,8 @@ export function hasShellMetachars(value) {
  * Run an external CLI that may be a Windows shim (see `NEEDS_SHELL`). On Windows an
  * argument a shell would reinterpret is refused, not quoted; only whitespace is quoted.
  */
-export function runTool(cmd, args = []) {
-  if (!NEEDS_SHELL) return tryRun(cmd, args);
+export function runTool(cmd, args = [], opts = {}) {
+  if (!NEEDS_SHELL) return tryRun(cmd, args, opts);
   const unsafe = args.find(hasShellMetachars);
   if (unsafe !== undefined) {
     return {
@@ -46,7 +46,7 @@ export function runTool(cmd, args = []) {
   }
   // Quote the command too: a tool under `C:\Program Files\…` is split at the space.
   const quote = (v) => (/\s/.test(v) ? `"${v}"` : v);
-  return tryRun([quote(cmd), ...args.map(quote)].join(" "), undefined, { shell: true });
+  return tryRun([quote(cmd), ...args.map(quote)].join(" "), undefined, { ...opts, shell: true });
 }
 
 /** Normalized path for equality checks, as git reports paths: symlinks and Windows 8.3 short names
@@ -94,14 +94,6 @@ export function git(args) {
 /** Repo-root path helper. */
 export function at(...parts) {
   return join(ROOT, ...parts);
-}
-
-/**
- * The directory git reads hooks from for a `core.hooksPath` value. An absolute value
- * (as `bd init` writes) points every linked worktree at the main checkout's hooks.
- */
-export function hooksDirFor(hooksPath, root = ROOT) {
-  return isAbsolute(hooksPath) ? hooksPath : join(root, hooksPath);
 }
 
 /**
@@ -155,10 +147,7 @@ export function writeIfChanged(path, next) {
   return true;
 }
 
-/**
- * The name `package.json` ships with. While it is still this, `bd init` must not run:
- * it commits a project identity every downstream copy would inherit.
- */
+/** The placeholder package name used until project personalization. */
 export const PLACEHOLDER_NAME = "my-project";
 
 /** True while package.json still carries the placeholder name. */

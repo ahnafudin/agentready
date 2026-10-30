@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 const script = (name) => fileURLToPath(new URL(`../${name}`, import.meta.url));
 
 const CASES = [
+  { name: "github-setup.mjs", argv: ["--projet=5"] },
   { name: "gate.mjs", argv: ["--lst"] },
   { name: "check-version-sync.mjs", argv: ["--chek"] },
   { name: "sync-agents.mjs", argv: ["--chek"] },
@@ -19,6 +20,7 @@ const CASES = [
   { name: "verify-stack.mjs", argv: [".", "node", "--onyl=lint"] },
   { name: "install-hooks.mjs", argv: ["--chek"] },
   { name: "check-attribution.mjs", argv: ["--rnge=a..b"] },
+  { name: "worktrees.mjs", argv: ["create", "task-1", "--agnt=codex"] },
 ];
 
 describe("CLI flag handling", () => {
