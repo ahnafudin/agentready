@@ -170,6 +170,71 @@ function planCargoLock(path, raw, version) {
   return re.test(raw) ? raw.replace(re, `$1${version}$2`) : null;
 }
 
+/** Find an object's closing brace without counting braces inside escaped JSON strings. */
+function matchingBrace(text, open) {
+  if (text[open] !== "{") return -1;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = open; index < text.length; index++) {
+    const character = text[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') inString = false;
+    } else if (character === '"') inString = true;
+    else if (character === "{") depth++;
+    else if (character === "}" && --depth === 0) return index;
+  }
+  return -1;
+}
+
+/** Find one direct JSON member, excluding nested lookalikes and ambiguous duplicate keys. */
+function jsonMember(raw, open, key) {
+  if (open === null) return null;
+  const close = matchingBrace(raw, open);
+  if (close < 0) return null;
+  let depth = 0;
+  let found = null;
+  for (const match of raw.slice(open + 1, close).matchAll(/"(?:\\.|[^"\\])*"|[{}[\]]/g)) {
+    const token = match[0];
+    if (token.startsWith('"')) {
+      if (depth !== 0 || JSON.parse(token) !== key) continue;
+      const afterKey = open + 1 + match.index + token.length;
+      const colon = /^\s*:\s*/.exec(raw.slice(afterKey));
+      if (!colon) continue;
+      if (found !== null) return null;
+      found = afterKey + colon[0].length;
+    } else if (token === "{" || token === "[") depth++;
+    else depth--;
+  }
+  return found;
+}
+
+/** Update both npm project versions with targeted splices, never a dependency pin. */
+function planPackageLock(path, raw, version) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (![2, 3].includes(parsed?.lockfileVersion) || typeof parsed?.version !== "string" || typeof parsed?.packages?.[""]?.version !== "string") return null;
+
+  const rootOpen = raw.indexOf("{");
+  const packagesOpen = jsonMember(raw, rootOpen, "packages");
+  const packageOpen = jsonMember(raw, packagesOpen, "");
+  const starts = [jsonMember(raw, rootOpen, "version"), jsonMember(raw, packageOpen, "version")];
+  if (starts.includes(null)) return null;
+  let next = raw;
+  for (const start of starts.sort((left, right) => right - left)) {
+    const literal = /^"(?:\\.|[^"\\])*"/.exec(raw.slice(start));
+    if (!literal) return null;
+    next = next.slice(0, start) + JSON.stringify(version) + next.slice(start + literal[0].length);
+  }
+  return next;
+}
+
 /** pyproject.toml: `[project]` (PEP 621) or `[tool.poetry]`. Skipped when the
  *  version is declared dynamic — a build backend owns it then. */
 function planPyproject(path, raw, version) {
@@ -285,6 +350,7 @@ function planVersionFile(path, raw, version) {
 
 const TARGETS = [
   { find: () => find("package.json"), plan: jsonVersion({ required: true }) },
+  { find: () => find("package-lock.json"), plan: planPackageLock },
   { find: () => find("src-tauri/tauri.conf.json", "src-tauri/tauri.conf.json5"), plan: jsonVersion() },
   { find: () => find("Cargo.toml", "src-tauri/Cargo.toml"), plan: planCargoToml },
   { find: () => find("Cargo.lock", "src-tauri/Cargo.lock"), plan: planCargoLock },
@@ -366,6 +432,7 @@ export const __test = { expandGlob, tomlSection, planners: {
   jsonVersion,
   planCargoToml,
   planCargoLock,
+  planPackageLock,
   planPyproject,
   planPubspec,
   planGradleProperties,

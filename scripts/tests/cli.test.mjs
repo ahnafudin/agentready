@@ -12,6 +12,7 @@ const script = (name) => fileURLToPath(new URL(`../${name}`, import.meta.url));
 
 const CASES = [
   { name: "gate.mjs", argv: ["--lst"] },
+  { name: "check-version-sync.mjs", argv: ["--chek"] },
   { name: "sync-agents.mjs", argv: ["--chek"] },
   { name: "personalize.mjs", argv: ["--forse"] },
   { name: "stacks.mjs", argv: ["apply", "--forse"] },

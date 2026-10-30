@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// scripts/gate.mjs — `npm run gate`: the anti-slop checks, then tooling.gates lint → typecheck → test → build.
+// scripts/gate.mjs — `npm run gate`: built-in checks, then tooling.gates lint → typecheck → test → build.
 // `npm run gate test` runs one gate; `npm run gate:list` lists them (npm swallows a leading `--list`).
 
 import { spawnSync } from "node:child_process";
+import { reportVersionSync } from "./check-version-sync.mjs";
 import { reportDesign } from "./design-check.mjs";
 import { at, isMain, parseFlags, readJson } from "./lib/util.mjs";
 import { reportSlop } from "./slop-check.mjs";
@@ -13,6 +14,7 @@ const ORDER = ["lint", "typecheck", "test", "build"];
 const BUILT_IN = [
   { key: "slop", script: "scripts/slop-check.mjs", run: () => reportSlop() },
   { key: "design", script: "scripts/design-check.mjs", run: () => reportDesign() },
+  { key: "version-sync", script: "scripts/check-version-sync.mjs", run: () => reportVersionSync() },
 ];
 const BUILT_IN_KEYS = BUILT_IN.map((b) => b.key);
 // 127 = POSIX "command not found"; 9009 = the cmd.exe equivalent on Windows.

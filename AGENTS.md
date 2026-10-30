@@ -74,14 +74,16 @@ Treat the rules below as if they were prepended to every request:
 ## Quality gates — one command, any language
 
 ```bash
-npm run gate            # slop → lint → typecheck → test → build, stopping at the first failure
+npm run gate            # slop → design → version-sync → lint → typecheck → test → build
 npm run gate test       # a single stage
 npm run gate:list       # what is configured, without running it
 npm run slop            # the comment check alone
 ```
 
-`slop` is built in and always runs first; its limit and ignored paths live in `package.json` →
-`tooling.slop`. The other commands live in `package.json` → `tooling.gates` and are filled in from the framework
+`slop`, `design` and `version-sync` are built in and run before framework gates. The comment limit
+and ignored paths live in `package.json` → `tooling.slop`; the version check compares optional npm
+v2/v3 lockfile project versions with `package.json`. See `docs/VERSIONING.md` for skipped formats
+and recovery. The other commands live in `package.json` → `tooling.gates` and are filled in from the framework
 registry by `npm run stack:apply`. **This indirection is the point:** every agent, in every
 language, only has to know `npm run gate`. If a gate command is wrong, fix it in `package.json` —
 do not work around it, and do not invent your own build command.
